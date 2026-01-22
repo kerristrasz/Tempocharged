@@ -106,5 +106,3 @@ function CreateAuraTracker(parent, unit, auraInstanceID)
 
     return tracker
 end
-
-Addon:OnInitialize()
