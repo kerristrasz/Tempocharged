@@ -2,7 +2,9 @@
 ## Title: Tempocharged Cooldown Counters
 ## Notes: WIP OmniCC replacement
 ## Version: 0.1.0
+## SavedVariables: TempochargedDatabase
 
 Core.lua
-Display.lua
+Options.lua
+Countdown.lua
 Init.lua 
