@@ -1,7 +1,7 @@
----@meta _
+--- @meta _
 
----@class Cooldown
+--- @class Cooldown
 local Cooldown = {}
 
----@return FontString
+--- @return FontString
 function Cooldown:GetCountdownFontString() end
