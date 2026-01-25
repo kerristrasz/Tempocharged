@@ -7,7 +7,10 @@ local module = {}
 --- @class Tempocharged.Options.Theme
 --- @field font Tempocharged.Options.Font
 --- @field shadow Tempocharged.Options.FontShadow
---- @field textStyles Tempocharged.Options.TextStyle[]
+--- @field point Tempocharged.Options.Position
+--- @field durationStyles Tempocharged.Options.DurationStyle[]
+--- @field rechargingStyle Tempocharged.Options.Style
+--- @field lossOfControlStyle Tempocharged.Options.Style
 
 --- @class Tempocharged.Options.Font
 --- @field file FontFile
@@ -22,13 +25,20 @@ local module = {}
 --- @field offsetX number
 --- @field offsetY number
 
---- @class Tempocharged.Options.TextStyle
---- @field minDuration number
+--- @class Tempocharged.Options.Position
+--- @field anchor FramePoint
+--- @field offsetX number
+--- @field offsetY number
+
+--- @class Tempocharged.Options.Style
 --- @field r number
 --- @field g number
 --- @field b number
 --- @field a? number
 --- @field scale number
+
+--- @class Tempocharged.Options.DurationStyle : Tempocharged.Options.Style
+--- @field minDuration number
 
 --- @return Tempocharged.Options.Theme
 function module.GetTheme()
@@ -52,10 +62,15 @@ function module.GetTheme()
             offsetX = 0,
             offsetY = 0,
         },
-        textStyles = {
+        point = {
+            anchor = "CENTER",
+            offsetX = 0,
+            offsetY = 0,
+        },
+        durationStyles = {
             --- Must be sorted by minDuration
             {
-                minDuration = 0,
+                minDuration = 0.5,
                 r = 1,
                 g = 0.1,
                 b = 0.1,
@@ -89,6 +104,19 @@ function module.GetTheme()
                 b = 0.7,
                 scale = 0.75,
             },
+        },
+        rechargingStyle = {
+            r = 0.8,
+            g = 1,
+            b = .3,
+            a = .8,
+            scale = .75,
+        },
+        lossOfControlStyle = {
+            r = 1,
+            g = .1,
+            b = .1,
+            scale = 1.5,
         },
     }
 end

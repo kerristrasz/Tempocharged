@@ -4,7 +4,9 @@ local Tempocharged = select(2, ...)
 local module = {}
 
 --- @class CountdownMixin
---- @field _fontStrings CountdownFontString[]
+--- @field _durationStrings CountdownFontString[]
+--- @field _rechargingString CountdownFontString
+--- @field _lossOfControlString CountdownFontString
 local CountdownMixin = {}
 
 --- @class Countdown : Frame, CountdownMixin
@@ -34,36 +36,50 @@ function CountdownMixin:GetOrCreate(parent)
 end
 
 --- @param self Countdown
+--- @param theme Tempocharged.Options.Theme
+--- @param style Tempocharged.Options.Style
+--- @return CountdownFontString fontString
+local function CreateCountdownFontString(self, theme, style)
+    local fs = self:CreateFontString() --[[@as CountdownFontString]]
+    fs:SetPoint(theme.point.anchor, theme.point.offsetX, theme.point.offsetY)
+
+    fs:SetFont(theme.font.file, theme.font.height, theme.font.flags)
+    fs:SetShadowColor(theme.shadow.r, theme.shadow.g, theme.shadow.b, theme.shadow.a)
+    fs:SetShadowOffset(theme.shadow.offsetX, theme.shadow.offsetY)
+    fs:SetTextColor(style.r, style.g, style.b)
+    fs:SetScale(style.scale * self:GetScaleFactorOverride())
+
+    fs._alphaCurve = C_CurveUtil.CreateCurve()
+    fs._alphaCurve:SetType(Enum.LuaCurveType.Step)
+
+    return fs
+end
+
+--- @param self Countdown
 function CountdownMixin:Initialize()
     self:SetAllPoints()
 
     local theme = Tempocharged.Options.GetTheme()
 
-    self._fontStrings = {}
-    for i, textStyle in ipairs(theme.textStyles) do
-        local fontString = self:CreateFontString() --[[@as CountdownFontString]]
-        fontString:SetPoint("CENTER")
-        fontString:SetJustifyH("CENTER")
-        fontString:SetJustifyV("MIDDLE")
-        fontString:SetFont(theme.font.file, theme.font.height, theme.font.flags)
-        fontString:SetShadowColor(theme.shadow.r, theme.shadow.g, theme.shadow.b, theme.shadow.a)
-        fontString:SetShadowOffset(theme.shadow.offsetX, theme.shadow.offsetY)
-        fontString:SetTextColor(textStyle.r, textStyle.g, textStyle.b)
-        fontString:SetScale(textStyle.scale * self:GetScaleFactorOverride())
-
-        -- TODO: maybe this could be cached?
-        fontString._alphaCurve = C_CurveUtil.CreateCurve()
-        fontString._alphaCurve:SetType(Enum.LuaCurveType.Step)
+    self._durationStrings = {}
+    for i, textStyle in ipairs(theme.durationStyles) do
+        local fontString = CreateCountdownFontString(self, theme, textStyle)
         if i > 1 then
-            fontString._alphaCurve:AddPoint(theme.textStyles[i - 1].minDuration, 0)
+            fontString._alphaCurve:AddPoint(theme.durationStyles[i - 1].minDuration, 0)
+        else
+            fontString._alphaCurve:AddPoint(-100, 0)
         end
         fontString._alphaCurve:AddPoint(textStyle.minDuration, textStyle.a or 1)
-        if i < #theme.textStyles then
-            fontString._alphaCurve:AddPoint(theme.textStyles[i + 1].minDuration, 0)
+        if i < #theme.durationStyles then
+            fontString._alphaCurve:AddPoint(theme.durationStyles[i + 1].minDuration, 0)
         end
 
-        tinsert(self._fontStrings, fontString)
+        tinsert(self._durationStrings, fontString)
     end
+
+    -- TODO: these don't need curves
+    self._rechargingString = CreateCountdownFontString(self, theme, theme.rechargingStyle)
+    self._lossOfControlString = CreateCountdownFontString(self, theme, theme.lossOfControlStyle)
 
     self:SetScript("OnUpdate", self.OnUpdate)
 end
@@ -76,7 +92,7 @@ function CountdownMixin:OnUpdate()
     -- TODO: make text formatting a config option
     local text = C_StringUtil.RoundToNearestString(duration:GetRemainingDuration())
 
-    for _, fontString in ipairs(self._fontStrings) do
+    for _, fontString in ipairs(self._durationStrings) do
         fontString:SetText(text)
         fontString:SetAlpha(duration:EvaluateRemainingDuration(fontString._alphaCurve))
     end
