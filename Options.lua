@@ -1,36 +1,36 @@
----@class Tempocharged
+--- @class Tempocharged
 local Tempocharged = select(2, ...)
 
----@class Tempocharged.Options
+--- @class Tempocharged.Options
 local module = {}
 
----@class Tempocharged.Options.Theme
----@field font Tempocharged.Options.Font
----@field shadow Tempocharged.Options.FontShadow
----@field textStyles Tempocharged.Options.TextStyle[]
+--- @class Tempocharged.Options.Theme
+--- @field font Tempocharged.Options.Font
+--- @field shadow Tempocharged.Options.FontShadow
+--- @field textStyles Tempocharged.Options.TextStyle[]
 
----@class Tempocharged.Options.Font
----@field file FontFile
----@field height number
----@field flags? TBFFlags
+--- @class Tempocharged.Options.Font
+--- @field file FontFile
+--- @field height number
+--- @field flags? TBFFlags
 
----@class Tempocharged.Options.FontShadow
----@field r number
----@field g number
----@field b number
----@field a? number
----@field offsetX number
----@field offsetY number
+--- @class Tempocharged.Options.FontShadow
+--- @field r number
+--- @field g number
+--- @field b number
+--- @field a? number
+--- @field offsetX number
+--- @field offsetY number
 
----@class Tempocharged.Options.TextStyle
----@field minDuration number
----@field r number
----@field g number
----@field b number
----@field a? number
----@field scale number
+--- @class Tempocharged.Options.TextStyle
+--- @field minDuration number
+--- @field r number
+--- @field g number
+--- @field b number
+--- @field a? number
+--- @field scale number
 
----@return Tempocharged.Options.Theme
+--- @return Tempocharged.Options.Theme
 function module.GetTheme()
     local sec = 1
     local min = 60 * sec
@@ -88,8 +88,8 @@ function module.GetTheme()
                 g = 0.7,
                 b = 0.7,
                 scale = 0.75,
-            }
-        }
+            },
+        },
     }
 end
 

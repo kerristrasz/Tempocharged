@@ -1,27 +1,47 @@
----@class Tempocharged
+--- @class Tempocharged
 local Tempocharged = select(2, ...)
 
 local module = {}
 
----@class Countdown : Frame
----@field fontStrings CountdownFontString[]
+--- @class CountdownMixin
+--- @field _fontStrings CountdownFontString[]
 local CountdownMixin = {}
 
----@class CountdownFontString : FontString
----@field alphaCurve CurveObject
+--- @class Countdown : Frame, CountdownMixin
 
----@type { [Frame]: Countdown }
+--- @class CountdownFontString : FontString
+--- @field _alphaCurve CurveObject
+
+--- @type { [Frame]: Countdown }
 local countdowns = {}
 
+--- Gets the `Countdown` for the `parent` if one exists, or creates a new one if not.
+---
+--- @param parent Frame the countdown's parent
+--- @return Countdown countdown
+function CountdownMixin:GetOrCreate(parent)
+    if parent ~= nil and countdowns[parent] ~= nil then
+        return countdowns[parent]
+    end
+    -- TODO: check some config option
+    -- if parent.SetHideCountdownNumbers ~= nil then
+    --     parent:SetHideCountdownNumbers(true)
+    -- end
+
+    local frame = Mixin(CreateFrame("Frame", nil, parent), self) --[[@as Countdown]]
+    frame:Initialize()
+    return frame
+end
+
+--- @param self Countdown
 function CountdownMixin:Initialize()
     self:SetAllPoints()
 
     local theme = Tempocharged.Options.GetTheme()
 
-    self.fontStrings = {}
+    self._fontStrings = {}
     for i, textStyle in ipairs(theme.textStyles) do
-        ---@type CountdownFontString
-        local fontString = self:CreateFontString()
+        local fontString = self:CreateFontString() --[[@as CountdownFontString]]
         fontString:SetPoint("CENTER")
         fontString:SetJustifyH("CENTER")
         fontString:SetJustifyV("MIDDLE")
@@ -31,23 +51,24 @@ function CountdownMixin:Initialize()
         fontString:SetTextColor(textStyle.r, textStyle.g, textStyle.b)
         fontString:SetScale(textStyle.scale * self:GetScaleFactorOverride())
 
-        --TODO: maybe this could be cached?
-        fontString.alphaCurve = C_CurveUtil.CreateCurve()
-        fontString.alphaCurve:SetType(Enum.LuaCurveType.Step)
+        -- TODO: maybe this could be cached?
+        fontString._alphaCurve = C_CurveUtil.CreateCurve()
+        fontString._alphaCurve:SetType(Enum.LuaCurveType.Step)
         if i > 1 then
-            fontString.alphaCurve:AddPoint(theme.textStyles[i - 1].minDuration, 0)
+            fontString._alphaCurve:AddPoint(theme.textStyles[i - 1].minDuration, 0)
         end
-        fontString.alphaCurve:AddPoint(textStyle.minDuration, textStyle.a)
+        fontString._alphaCurve:AddPoint(textStyle.minDuration, textStyle.a or 1)
         if i < #theme.textStyles then
-            fontString.alphaCurve:AddPoint(theme.textStyles[i + 1].minDuration, 0)
+            fontString._alphaCurve:AddPoint(theme.textStyles[i + 1].minDuration, 0)
         end
 
-        tinsert(self.fontStrings, fontString)
+        tinsert(self._fontStrings, fontString)
     end
 
     self:SetScript("OnUpdate", self.OnUpdate)
 end
 
+--- @param self Countdown
 function CountdownMixin:OnUpdate()
     local duration = self:GetDuration()
     if duration == nil then return end
@@ -55,71 +76,57 @@ function CountdownMixin:OnUpdate()
     -- TODO: make text formatting a config option
     local text = C_StringUtil.RoundToNearestString(duration:GetRemainingDuration())
 
-    for _, fontString in self.fontStrings do
+    for _, fontString in ipairs(self._fontStrings) do
         fontString:SetText(text)
-        fontString:SetAlpha(duration:EvaluateRemainingDuration(fontString.alphaCurve))
-    end 
+        fontString:SetAlpha(duration:EvaluateRemainingDuration(fontString._alphaCurve))
+    end
 end
 
----Gets the duration to display on this countdown. 
+--- Gets the duration to display on this countdown.
 ---
----@return DurationObject? duration
+--- @param self Countdown
+--- @return DurationObject? duration
 function CountdownMixin:GetDuration() end
 
----Gets the scale factor to apply based on the size of the widget.
+--- Gets the scale factor to apply based on the size of the widget.
 ---
----@return number scale
+--- @param self Countdown
+--- @return number scale
 function CountdownMixin:GetScaleFactorOverride()
-    --TODO: this should be replaced with a SecureHandler function, somehow
+    -- TODO: this should be replaced with a SecureHandler function, somehow
     return 1
 end
 
-
----@class TargetAuraFrameCountdown : Countdown
+--- @class TargetAuraFrameCountdownMixin : CountdownMixin
 local TargetAuraFrameCountdownMixin = Mixin({}, CountdownMixin)
 
+--- @class TargetAuraFrameCountdown : Frame, TargetAuraFrameCountdownMixin
+
+--- @param self TargetAuraFrameCountdown
+--- @return DurationObject? duration
 function TargetAuraFrameCountdownMixin:GetDuration()
-    local auraFrame = self:GetParent():GetParent()
-    local unit = auraFrame.unit
-    local auraInstanceID = auraFrame.auraInstanceID
+    local auraFrame = self:GetParent():GetParent() --[[@as Frame]]
+    local unit = auraFrame["unit"]
+    local auraInstanceID = auraFrame["auraInstanceID"]
     if unit ~= nil and auraInstanceID ~= nil then
         return C_UnitAuras.GetAuraDuration(unit, auraInstanceID)
     end
     return nil
-end 
+end
 
----@return number scale
+--- @param self TargetAuraFrameCountdown
+--- @return number scale
 function TargetAuraFrameCountdownMixin:GetScaleFactorOverride()
     -- The buff/debuff icons end up having a text height of 10.5.
     -- TODO: figure out how
     return 10.5 / 18
 end
 
----Gets the `Countdown` for the `parent` if one exists, or creates a new one if not.   
----
----@param parent Frame the countdown's parent
----@param countdownType Countdown the specific subtype of countdown
----@return Countdown countdown
-local function GetOrCreateCountdown(parent, countdownType)
-    if parent ~= nil and countdowns[parent] ~= nil then 
-        return countdowns[parent]
-    end
-    -- TODO: check some config option
-    -- if parent.SetHideCountdownNumbers ~= nil then
-    --     parent:SetHideCountdownNumbers(true)
-    -- end
-
-    local frame = CreateFrame("Frame", nil, parent)
-    frame = Mixin(frame, countdownType)
-    frame:Initialize()
-    return frame
-end
-
 local function OnUpdateTargetAuraFrames(targetFrame, auraList)
     for _, child in ipairs({ targetFrame:GetChildren() }) do
         local aura = child.auraInstanceID and auraList[child.auraInstanceID]
         if aura ~= nil then
-            GetOrCreateCountdown(child.Cooldown, TargetAuraFrameCountdownMixin)
+            TargetAuraFrameCountdownMixin:GetOrCreate(child.Cooldown)
         end
     end
 end
