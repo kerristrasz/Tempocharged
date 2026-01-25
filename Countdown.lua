@@ -19,12 +19,14 @@ local countdowns = {}
 
 --- Gets the `Countdown` for the `parent` if one exists, or creates a new one if not.
 ---
---- @param parent Frame the countdown's parent
+--- @param parent Frame? the countdown's parent
 --- @return Countdown countdown
 function CountdownMixin:GetOrCreate(parent)
     if parent ~= nil and countdowns[parent] ~= nil then
+        -- print("existing frame for" .. parent:GetDebugName())
         return countdowns[parent]
     end
+
     -- TODO: check some config option
     -- if parent.SetHideCountdownNumbers ~= nil then
     --     parent:SetHideCountdownNumbers(true)
@@ -32,6 +34,9 @@ function CountdownMixin:GetOrCreate(parent)
 
     local frame = Mixin(CreateFrame("Frame", nil, parent), self) --[[@as Countdown]]
     frame:Initialize()
+    if parent ~= nil then
+        countdowns[parent] = frame
+    end
     return frame
 end
 
@@ -133,9 +138,26 @@ end
 --- @param self TargetAuraFrameCountdown
 --- @return number scale
 function TargetAuraFrameCountdownMixin:GetScaleFactorOverride()
-    -- The buff/debuff icons end up having a text height of 10.5.
-    -- TODO: figure out how
-    return 10.5 / 18
+    -- Size = min(self:GetSize()) / 36
+    return 21 / 36
+end
+
+--- @class TargetOfTargetDebuffCountdownMixin : CountdownMixin
+--- @field _duration DurationObject?
+--- @field GetOrCreate fun(self: self, parent: Frame): TargetOfTargetDebuffCountdown
+local TargetOfTargetDebuffCountdownMixin = Mixin({}, CountdownMixin)
+
+--- @class TargetOfTargetDebuffCountdown : Frame, TargetOfTargetDebuffCountdownMixin
+
+--- @param self TargetOfTargetDebuffCountdown
+--- @return DurationObject? duration
+function TargetOfTargetDebuffCountdownMixin:GetDuration()
+    return self._duration
+end
+
+function TargetOfTargetDebuffCountdownMixin:GetScaleFactorOverride()
+    -- size: 12 x 12
+    return 12 / 36
 end
 
 local function OnUpdateTargetAuraFrames(targetFrame, auraList)
@@ -147,8 +169,29 @@ local function OnUpdateTargetAuraFrames(targetFrame, auraList)
     end
 end
 
+local function OnUpdateTargetOfTargetFrame(totFrame)
+    if not totFrame:IsShown() then return end
+
+    local unit = totFrame["unit"]
+    local filter = ((C_CVar.GetCVar("showDispelDebuffs") and UnitCanAssist("player", unit))
+        and "HARMFUL|RAID"
+        or "HARMFUL")
+
+    local i = 0
+    AuraUtil.ForEachAura(unit, filter, MAX_PARTY_DEBUFFS, function(auraData)
+        i = i + 1
+        local parent = _G["TargetFrameToTDebuff" .. i .. "Cooldown"]
+        if parent ~= nil then
+            local frame = TargetOfTargetDebuffCountdownMixin:GetOrCreate(parent)
+            frame._duration =
+                C_UnitAuras.GetAuraDuration(unit, auraData.auraInstanceID)
+        end
+    end, true)
+end
+
 local function HookTargetFrame()
     hooksecurefunc(TargetFrame, "UpdateAuraFrames", OnUpdateTargetAuraFrames)
+    hooksecurefunc(TargetFrameToT, "Update", OnUpdateTargetOfTargetFrame)
 end
 
 function module.Initialize()
