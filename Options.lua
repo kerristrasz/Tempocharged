@@ -8,8 +8,8 @@ local module = {}
 --- @field font Tempocharged.Options.Font
 --- @field shadow Tempocharged.Options.FontShadow
 --- @field point Tempocharged.Options.Position
---- @field durationStyles Tempocharged.Options.DurationStyle[]
---- @field rechargingStyle Tempocharged.Options.Style
+--- @field cooldownStyles Tempocharged.Options.DurationStyle[]
+--- @field rechargeStyle Tempocharged.Options.Style
 --- @field lossOfControlStyle Tempocharged.Options.Style
 
 --- @class Tempocharged.Options.Font
@@ -67,45 +67,45 @@ function module.GetTheme()
             offsetX = 0,
             offsetY = 0,
         },
-        durationStyles = {
+        cooldownStyles = {
             --- Must be sorted by minDuration
             {
-                minDuration = 0.5,
+                minDuration = 1,
                 r = 1,
                 g = 0.1,
                 b = 0.1,
                 scale = 1.5,
             },
             {
-                minDuration = 5.5 * sec,
+                minDuration = 5 * sec  + 1,
                 r = 1,
                 g = 1,
                 b = 0.1,
                 scale = 1,
             },
             {
-                minDuration = min - 0.5 * sec,
+                minDuration = min + 1,
                 r = 1,
                 g = 1,
                 b = 1,
                 scale = 1,
             },
             {
-                minDuration = hr - 0.5 * min,
+                minDuration = hr  + 1,
                 r = 0.7,
                 g = 0.7,
                 b = 0.7,
                 scale = 0.75,
             },
-            {
-                minDuration = day - 0.5 * hr,
-                r = 0.7,
-                g = 0.7,
-                b = 0.7,
-                scale = 0.75,
-            },
+            -- {
+            --     minDuration = day,
+            --     r = 0.7,
+            --     g = 0.7,
+            --     b = 0.7,
+            --     scale = 0.75,
+            -- },
         },
-        rechargingStyle = {
+        rechargeStyle = {
             r = 0.8,
             g = 1,
             b = .3,
