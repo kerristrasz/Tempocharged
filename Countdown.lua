@@ -4,9 +4,7 @@ local Tempocharged = select(2, ...)
 local module = {}
 
 --- @class CountdownMixin
---- @field _durationStrings CountdownFontString[]
---- @field _rechargingString CountdownFontString
---- @field _lossOfControlString CountdownFontString
+--- @field _cooldownStrings CountdownFontString[]
 local CountdownMixin = {}
 
 --- @class Countdown : Frame, CountdownMixin
@@ -23,7 +21,6 @@ local countdowns = {}
 --- @return Countdown countdown
 function CountdownMixin:GetOrCreate(parent)
     if parent ~= nil and countdowns[parent] ~= nil then
-        -- print("existing frame for" .. parent:GetDebugName())
         return countdowns[parent]
     end
 
@@ -66,7 +63,7 @@ function CountdownMixin:Initialize()
 
     local theme = Tempocharged.Options.GetTheme()
 
-    self._durationStrings = {}
+    self._cooldownStrings = {}
     for i, textStyle in ipairs(theme.durationStyles) do
         local fontString = CreateCountdownFontString(self, theme, textStyle)
         if i > 1 then
@@ -79,12 +76,8 @@ function CountdownMixin:Initialize()
             fontString._alphaCurve:AddPoint(theme.durationStyles[i + 1].minDuration, 0)
         end
 
-        tinsert(self._durationStrings, fontString)
+        tinsert(self._cooldownStrings, fontString)
     end
-
-    -- TODO: these don't need curves
-    self._rechargingString = CreateCountdownFontString(self, theme, theme.rechargingStyle)
-    self._lossOfControlString = CreateCountdownFontString(self, theme, theme.lossOfControlStyle)
 
     self:SetScript("OnUpdate", self.OnUpdate)
 end
@@ -92,21 +85,25 @@ end
 --- @param self Countdown
 function CountdownMixin:OnUpdate()
     local duration = self:GetDuration()
-    if duration == nil then return end
+    if duration ~= nil --[[and not duration:IsZero()]] then
+        local text = Tempocharged.Options.FormatDuration(duration:GetRemainingDuration())
 
-    -- TODO: make text formatting a config option
-    local text = C_StringUtil.RoundToNearestString(duration:GetRemainingDuration())
-
-    for _, fontString in ipairs(self._durationStrings) do
-        fontString:SetText(text)
-        fontString:SetAlpha(duration:EvaluateRemainingDuration(fontString._alphaCurve))
+        for _, fontString in ipairs(self._cooldownStrings) do
+            fontString:Show()
+            fontString:SetText(text)
+            fontString:SetAlpha(duration:EvaluateRemainingDuration(fontString._alphaCurve))
+        end
+    else
+        for _, fontString in ipairs(self._cooldownStrings) do
+            fontString:Hide()
+        end
     end
 end
 
 --- Gets the duration to display on this countdown.
 ---
 --- @param self Countdown
---- @return DurationObject? duration
+--- @return DurationObject? cooldownDuration
 function CountdownMixin:GetDuration() end
 
 --- Gets the scale factor to apply based on the size of the widget.
@@ -121,7 +118,7 @@ end
 --- @class TargetAuraFrameCountdownMixin : CountdownMixin
 local TargetAuraFrameCountdownMixin = Mixin({}, CountdownMixin)
 
---- @class TargetAuraFrameCountdown : Frame, TargetAuraFrameCountdownMixin
+--- @class TargetAuraFrameCountdown : Frame, Countdown, TargetAuraFrameCountdownMixin
 
 --- @param self TargetAuraFrameCountdown
 --- @return DurationObject? duration
@@ -147,7 +144,7 @@ end
 --- @field GetOrCreate fun(self: self, parent: Frame): TargetOfTargetDebuffCountdown
 local TargetOfTargetDebuffCountdownMixin = Mixin({}, CountdownMixin)
 
---- @class TargetOfTargetDebuffCountdown : Frame, TargetOfTargetDebuffCountdownMixin
+--- @class TargetOfTargetDebuffCountdown : Frame, Countdown, TargetOfTargetDebuffCountdownMixin
 
 --- @param self TargetOfTargetDebuffCountdown
 --- @return DurationObject? duration
@@ -158,6 +155,103 @@ end
 function TargetOfTargetDebuffCountdownMixin:GetScaleFactorOverride()
     -- size: 12 x 12
     return 12 / 36
+end
+
+--- @class ActionButtonCountdownMixin : CountdownMixin
+--- @field _chargingString CountdownFontString
+--- @field _lossOfControlString CountdownFontString
+local ActionButtonCountdownMixin = Mixin({}, CountdownMixin)
+
+--- @class ActionButtonCountdown : ActionButtonCountdownMixin, Frame, Countdown
+
+--- @param self ActionButtonCountdown
+function ActionButtonCountdownMixin:Initialize()
+    CountdownMixin.Initialize(self)
+    -- TODO: these don't need curves
+    local theme = Tempocharged.Options.GetTheme()
+    self._chargingString = CreateCountdownFontString(self, theme, theme.rechargingStyle)
+    self._lossOfControlString = CreateCountdownFontString(self, theme, theme.lossOfControlStyle)
+end
+
+-- TODO: put this somewhere
+local shortDurationCurve = C_CurveUtil.CreateCurve()
+shortDurationCurve:SetType(Enum.LuaCurveType.Step)
+shortDurationCurve:AddPoint(-1, 0)
+shortDurationCurve:AddPoint(0.5, 1)
+
+--- @param self ActionButtonCountdown
+function ActionButtonCountdownMixin:OnUpdate()
+    -- CountdownMixin.OnUpdate(self)
+    local cdDuration, chargeDuration, locDuration, cdEnabled = self:GetDuration()
+
+    do
+        local text = Tempocharged.Options.FormatDuration(locDuration:GetRemainingDuration())
+        self._lossOfControlString:SetText(text)
+        self._lossOfControlString:SetAlpha(locDuration:EvaluateRemainingDuration(shortDurationCurve))
+    end
+
+    if cdDuration ~= nil then
+        -- TODO: make text formatting a config option
+        local text = Tempocharged.Options.FormatDuration(cdDuration:GetRemainingDuration())
+
+        for _, fontString in ipairs(self._cooldownStrings) do
+            fontString:SetText(text)
+
+            local alpha = C_CurveUtil.EvaluateColorValueFromBoolean(
+                locDuration:IsZero(),
+                C_CurveUtil.EvaluateColorValueFromBoolean(
+                    cdEnabled,
+                    cdDuration:EvaluateRemainingDuration(fontString._alphaCurve),
+                    0),
+                0)
+            fontString:SetAlpha(alpha)
+        end
+    else
+        for _, fontString in ipairs(self._cooldownStrings) do
+            fontString:SetAlpha(0)
+        end
+    end
+
+    do
+        local text = Tempocharged.Options.FormatDuration(chargeDuration:GetRemainingDuration())
+        self._chargingString:SetText(text)
+
+        local alpha = C_CurveUtil.EvaluateColorValueFromBoolean(
+            locDuration:IsZero(),
+            C_CurveUtil.EvaluateColorValueFromBoolean(
+                cdDuration == nil or cdDuration:IsZero(),
+                chargeDuration:EvaluateRemainingDuration(shortDurationCurve),
+                0),
+            0)
+
+        self._chargingString:SetAlpha(alpha)
+        -- self._chargingString:SetAlpha(chargeDuration:EvaluateRemainingDuration(shortDurationCurve))
+    end
+end
+
+--- @param self ActionButtonCountdown
+--- @return DurationObject? cooldownDuration
+--- @return DurationObject chargeDuration
+--- @return DurationObject lossOfControlDuration
+function ActionButtonCountdownMixin:GetDuration()
+    local button = self:GetParent() --[[@as SecureActionButtonTemplate]]
+    --- @diagnostic disable-next-line: undefined-field
+    local action = button:CalculateAction()
+    local cdInfo = C_ActionBar.GetActionCooldown(action)
+
+    local cdDuration = (cdInfo.isOnGCD ~= true) and
+        C_ActionBar.GetActionCooldownDuration(action) or nil
+
+    local chargeDuration = C_ActionBar.GetActionChargeDuration(action)
+    local locDuration = C_ActionBar.GetActionLossOfControlCooldownDuration(action)
+
+    return cdDuration, chargeDuration, locDuration, cdInfo.isEnabled
+end
+
+--- @param self ActionButtonCountdown
+--- @return number scaleFactor
+function ActionButtonCountdownMixin:GetScaleFactorOverride()
+    return 45 / 36
 end
 
 local function OnUpdateTargetAuraFrames(targetFrame, auraList)
@@ -194,8 +288,22 @@ local function HookTargetFrame()
     hooksecurefunc(TargetFrameToT, "Update", OnUpdateTargetOfTargetFrame)
 end
 
+local function HookActionBars()
+    for i = 1, 12 do
+        ActionButtonCountdownMixin:GetOrCreate(_G["ActionButton" .. i]) -- Bar 1
+        ActionButtonCountdownMixin:GetOrCreate(_G["MultiBarBottomLeftButton" .. i]) -- Bar 2
+        ActionButtonCountdownMixin:GetOrCreate(_G["MultiBarBottomRightButton" .. i]) -- Bar 3
+        ActionButtonCountdownMixin:GetOrCreate(_G["MultiBarRightButton" .. i]) -- Bar 4
+        ActionButtonCountdownMixin:GetOrCreate(_G["MultiBarLeftButton" .. i]) -- Bar 5
+        ActionButtonCountdownMixin:GetOrCreate(_G["MultiBar5Button" .. i]) -- Bar 6
+        ActionButtonCountdownMixin:GetOrCreate(_G["MultiBar6Button" .. i]) -- Bar 7
+        ActionButtonCountdownMixin:GetOrCreate(_G["MultiBar7Button" .. i]) -- Bar 8
+    end
+end
+
 function module.Initialize()
     HookTargetFrame()
+    HookActionBars()
 end
 
 Tempocharged.Countdown = module

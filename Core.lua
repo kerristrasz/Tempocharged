@@ -1,6 +1,5 @@
 --- @diagnostic disable: unused-local
 
--- TODO: make private
 --- @class Tempocharged
 local Tempocharged = select(2, ...)
 

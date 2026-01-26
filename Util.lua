@@ -115,27 +115,23 @@ end
 --- @param maxDepth? number
 --- @return string prettyString
 function module.Stringify(value, maxDepth)
-    return StringifyRecursive(value, 1, maxDepth or 3)
+    return StringifyRecursive(value, 1, maxDepth or 2)
 end
 
---- @param value any
+--- @generic T
+--- @param value T
 --- @param maxDepth? number
+--- @return T originalValue
 function module.Dump(value, maxDepth)
     local str = module.Stringify(value, maxDepth)
     if issecretvalue(str) then
         print(str)
+    else
+        for _, line in pairs({ string.split("\n", str) }) do
+            print(line)
+        end
     end
-
-    for _, line in pairs({ string.split("\n", str) }) do
-        print(line)
-    end
+    return value
 end
-
--- TODO: remove globals
-s = module.Stringify
-d = module.Dump
-
--- /run d({ text = "string", number = 12.4, condition = true, table = { foo = "bar" }, array = {1, 2, nil, 4} })
-
 
 Tempocharged.Util = module
