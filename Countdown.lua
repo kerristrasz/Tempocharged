@@ -186,7 +186,7 @@ function ActionButtonCountdownMixin:OnUpdate()
         self._lossOfControlString:SetAlpha(locDuration:EvaluateRemainingDuration(shortDurationCurve))
     end
 
-    if cdDuration ~= nil then
+    if cdDuration then
         -- TODO: make text formatting a config option
         local text = C_StringUtil.FloorToNearestString(cdDuration:GetRemainingDuration())
 
@@ -208,7 +208,7 @@ function ActionButtonCountdownMixin:OnUpdate()
         end
     end
 
-    do
+    if chargeDuration then
         local text = C_StringUtil.FloorToNearestString(chargeDuration:GetRemainingDuration())
         self._chargingString:SetText(text)
 
@@ -227,7 +227,7 @@ end
 
 --- @param self ActionButtonCountdown
 --- @return DurationObject? cooldownDuration
---- @return DurationObject chargeDuration
+--- @return DurationObject? chargeDuration
 --- @return DurationObject lossOfControlDuration
 function ActionButtonCountdownMixin:GetDuration()
     local button = self:GetParent() --[[@as SecureActionButtonTemplate]]
@@ -235,6 +235,10 @@ function ActionButtonCountdownMixin:GetDuration()
     local action = button:CalculateAction()
     local cdInfo = C_ActionBar.GetActionCooldown(action)
 
+    -- isOnGCD
+    -- - nil = off cooldown
+    -- - true = off cooldown, but on GCD
+    -- - false = on cooldown
     local cdDuration = (cdInfo.isOnGCD ~= true) and
         C_ActionBar.GetActionCooldownDuration(action) or nil
 
@@ -248,6 +252,26 @@ end
 --- @return number scaleFactor
 function ActionButtonCountdownMixin:GetScaleFactorOverride()
     return 45 / 36
+end
+
+local NamePlateAuraCountdownMixin = CreateFromMixins(CountdownMixin)
+
+function NamePlateAuraCountdownMixin:OnUpdate()
+    self:GetParent():SetHideCountdownNumbers(true)
+    return CountdownMixin.OnUpdate(self)
+end
+
+function NamePlateAuraCountdownMixin:GetDuration()
+    local aura = self:GetParent():GetParent()
+    if aura.unitToken and aura.auraInstanceID then
+        return C_UnitAuras.GetAuraDuration(aura.unitToken, aura.auraInstanceID)
+    end
+    return nil
+end
+
+function NamePlateAuraCountdownMixin:GetScaleFactorOverride()
+    -- return 25 / 36
+    return 30 / 36
 end
 
 local function OnUpdateTargetAuraFrames(targetFrame, auraList)
@@ -297,9 +321,18 @@ local function HookActionBars()
     end
 end
 
+local function HookNamePlateAuras()
+    hooksecurefunc(NamePlateAuraItemMixin, "OnLoad", function(self)
+        NamePlateAuraCountdownMixin:Hook(self.Cooldown)
+    end)
+end
+
+
 function module.Initialize()
     HookTargetFrame()
     HookActionBars()
 end
+
+HookNamePlateAuras()
 
 Tempocharged.Countdown = module
