@@ -4,6 +4,7 @@
 ## Version: 0.1.0
 
 Core.lua
+Util.lua
 Options.lua
 Countdown.lua
 Init.lua
