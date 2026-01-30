@@ -13,32 +13,34 @@
 ---`DurationObject`s provide methods to perform calculations natively on potentially secret data
 ---and return secrets back to Lua. Create one with
 ---[`C_DurationUtil.CreateDuration()`](lua://C_DurationUtil.CreateDuration). These can be passed to
----[`StatusBar:SetTimerDuration()`](lua://StatusBar.SetTimerDuration). 
+---[`StatusBar:SetTimerDuration()`](lua://StatusBar.SetTimerDuration).
 ---
 ---@class DurationObject
 local DurationObject = {}
 
----Copies another duration object and assigns it to this one. 
+---@alias LuaDurationObject DurationObject
+
+---Copies another duration object and assigns it to this one.
 ---
 ---@param other DurationObject
 function DurationObject:Assign(other) end
 
----Returns a copy of this duration object. 
+---Returns a copy of this duration object.
 ---
 ---@return DurationObject copy
 function DurationObject:Copy() end
 
----Calculates the elapsed duration in seconds and evaluates it against a supplied curve. 
+---Calculates the elapsed duration in seconds and evaluates it against a supplied curve.
 ---
 ---@param curve CurveObjectBase
 ---@param modifier? Enum.DurationTimeModifier
----@return CurveEvaluatedResult result 
+---@return CurveEvaluatedResult result
 function DurationObject:EvaluateElapsedDuration(curve, modifier) end
 
 ---Calculates the elapsed duration as a percentage value and evaluates it against a supplied curve.
 ---
 ---@param curve CurveObjectBase
----@param modifier? Enum.DurationTimeModifier 
+---@param modifier? Enum.DurationTimeModifier
 ---@return CurveEvaluatedResult result
 function DurationObject:EvaluateElapsedPercent(curve, modifier) end
 
@@ -68,62 +70,62 @@ function DurationObject:GetElapsedDuration(modifier) end
 ---@return number elapsedPercent
 function DurationObject:GetElapsedPercent(modifier) end
 
----Calculates the end time of the stored time span. 
+---Calculates the end time of the stored time span.
 ---
 ---@param modifier? Enum.DurationTimeModifier
 ---@return number endTime
 function DurationObject:GetEndTime(modifier) end
 
----Returns the divisor used to convert a duration from real time to base time. 
+---Returns the divisor used to convert a duration from real time to base time.
 ---
 ---@return number modRate
 function DurationObject:GetModRate() end
 
----Calculates the remaining duration of the stored time span. 
+---Calculates the remaining duration of the stored time span.
 ---
 ---@param modifier Enum.DurationTimeModifier?
 ---@return number remainingDuration
 function DurationObject:GetRemainingDuration(modifier)  end
 
----Calculates the remaining duration as a percentage value. 
+---Calculates the remaining duration as a percentage value.
 ---
 ---@param modifier Enum.DurationTimeModifier?
 ---@return number remainingPercent
 function DurationObject:GetRemainingPercent(modifier) end
 
----Calculates the start time of the stored time span. 
+---Calculates the start time of the stored time span.
 ---
 ---@param modifier Enum.DurationTimeModifier?
 ---@return number startTime
 function DurationObject:GetStartTime(modifier) end
 
----Calculates the total duration of the stored time span. 
+---Calculates the total duration of the stored time span.
 ---
 ---@param modifier Enum.DurationTimeModifier?
 ---@return number totalDuration
 function DurationObject:GetTotalDuration(modifier) end
 
----Returns true if the duration has been configured with any secret values. 
+---Returns true if the duration has been configured with any secret values.
 ---
 ---@return boolean hasSecretValues
 function DurationObject:HasSecretValues() end
 
----Returns true if the duration object is measuring a zero duration time span. 
+---Returns true if the duration object is measuring a zero duration time span.
 ---
 ---@return boolean isZero
 function DurationObject:IsZero() end
 
----Resets the duration object to represent a zero duration time span. 
+---Resets the duration object to represent a zero duration time span.
 function DurationObject:Reset() end
 
----Configures the duration object to represent an end time and a duration. 
+---Configures the duration object to represent an end time and a duration.
 ---
 ---@param endTime number
 ---@param duration number
 ---@param modRate? number Optional divisor for converting this time span to a base time.
 function DurationObject:SetTimeFromEnd(endTime, duration, modRate) end
 
----Configures the duration object to represent a start time and a duration. 
+---Configures the duration object to represent a start time and a duration.
 ---
 ---@param startTime number
 ---@param duration number
@@ -131,7 +133,7 @@ function DurationObject:SetTimeFromEnd(endTime, duration, modRate) end
 function DurationObject:SetTimeFromStart(startTime, duration, modRate) end
 
 ---Configures the duration object to represent a fixed start and end time span. If the end time is
----earlier than the start time, the duration will clamp to zero. 
+---earlier than the start time, the duration will clamp to zero.
 ---
 ---@param startTime number
 ---@param endTime number

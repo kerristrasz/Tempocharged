@@ -6,5 +6,6 @@
 Core.lua
 Util.lua
 Options.lua
-Countdown.lua
+Cooldown.lua
+Hooks.lua
 Init.lua

@@ -9,5 +9,5 @@ end
 
 --- Called when the player loads their UI.
 function Tempocharged:OnEnable()
-    self.Countdown.Initialize()
+    self.Hooks.HookAll()
 end
