@@ -21,7 +21,6 @@ Tempocharged.Cooldown = Cooldown
 --- @field colorCurves ColorCurveObject[] color curves to apply normally
 --- @field auraColorCurves ColorCurveObject[] color curves to apply to aura display times
 --- @field duration DurationObject? the computed duration
---- @field debug? boolean
 
 --- @type { [Cooldown]: Tempocharged.CooldownExt }
 local hookedCooldowns = setmetatable({}, { __mode = "k" --[[ weak key refs ]] })
@@ -46,14 +45,6 @@ end
 local function Cooldown_OnUpdate(self)
     local ext = hookedCooldowns[self]
     if not ext then return end
-
-    if ext.debug then
-        DevTool:AddData({
-            ["self"] = self,
-            ext = ext,
-            useAuraDisplayTime = self:GetUseAuraDisplayTime(),
-        }, "Cooldown_OnUpdate")
-    end
 
     local useAuraDisplayTime = self:GetUseAuraDisplayTime()
     if issecretvalue(useAuraDisplayTime) then
@@ -85,8 +76,7 @@ end
 --- @param self? Cooldown
 --- @param spellType? Tempocharged.SpellCooldownType the kind of spell to track
 --- @param style? Tempocharged.CooldownStyle the style to apply
---- @param debug? boolean enable debug logging
-function Cooldown.TryInit(self, spellType, style, debug)
+function Cooldown.TryInit(self, spellType, style)
     -- Prevent hooking the same Cooldown multiple times
     if not self then
         return
@@ -94,29 +84,18 @@ function Cooldown.TryInit(self, spellType, style, debug)
 
     if hookedCooldowns[self] then
         hookedCooldowns[self].spellType = spellType
-        hookedCooldowns[self].debug = debug
     else
         local ext = {
             spellType = spellType,
             countdowns = { self:GetCountdownFontString() },
             colorCurves = {},
             auraColorCurves = {},
-            debug = debug,
         }
         hookedCooldowns[self] = ext
 
         ext.countdowns[1]:HookScript("OnShow", CountdownFontString_OnShow)
         ext.countdowns[1]:HookScript("OnHide", CountdownFontString_OnHide)
         self:HookScript("OnUpdate", Cooldown_OnUpdate)
-    end
-
-    if debug then
-        DevTool:AddData({
-            ["self"] = self,
-            cdType = cdType,
-            style = style,
-            debug = debug,
-        }, "Tempocharged.Cooldown.TryInit")
     end
 
     Cooldown.SetStyle(self, style)

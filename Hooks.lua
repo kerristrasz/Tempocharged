@@ -24,23 +24,13 @@ local function TargetFrame_OnUpdateAuraFrames(self, auraList)
 
     table.wipe(activeTargetFrameAuras)
 
-    local debug = 1
-
-
-    DevTool:AddData({
-        ['self'] = self,
-        activeBuffs = self.activeBuffs,
-        activeDebuffs = self.activeDebuffs
-    }, "TargetFrame_OnUpdateAuraFrames")
-
     for _, child in ipairs({ self:GetChildren() }) do
         if child.Cooldown and child.auraInstanceID then
             activeTargetFrameAuras[child] = true
+            -- TODO: cooldown should set this when I tell it it's tracking an aura
             child.Cooldown:SetUseAuraDisplayTime(true)
-            Cooldown.TryInit(child.Cooldown, nil, nil, debug)
+            Cooldown.TryInit(child.Cooldown)
             Cooldown.ApplyCooldownFromAura(child.Cooldown, self.unit, child.auraInstanceID)
-
-            debug = debug + 1
         end
     end
 end
